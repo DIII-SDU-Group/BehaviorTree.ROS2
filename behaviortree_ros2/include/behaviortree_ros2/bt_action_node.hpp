@@ -156,6 +156,9 @@ public:
     return NodeStatus::FAILURE;
   }
 
+  /** Callback invoked when goal is accepted by server */
+  virtual void onGoalAccepted() {}
+
   /// Method used to send a request to the Action server to cancel the current goal
   void cancelGoal();
 
@@ -392,6 +395,9 @@ template<class T> inline
         if (!goal_handle_) {
           return CheckStatus( onFailure( GOAL_REJECTED_BY_SERVER ) );
         }
+
+        onGoalAccepted();
+
       }
     }
 
