@@ -52,7 +52,7 @@ class RosTopicSubNode : public BT::ConditionNode
  protected: 
   struct SubscriberInstance
   {
-    void init(std::shared_ptr<rclcpp::Node> node, const std::string& topic_name)
+    void init(std::shared_ptr<rclcpp::Node> node, const std::string& topic_name, rclcpp::QoS qos_profile)
     {
       // create a callback group for this particular instance
       callback_group = 
@@ -68,7 +68,7 @@ class RosTopicSubNode : public BT::ConditionNode
       {
         broadcaster(msg);
       };
-      subscriber =  node->create_subscription<TopicT>(topic_name, 1, callback, option);
+      subscriber =  node->create_subscription<TopicT>(topic_name, qos_profile, callback, option);
     }
 
     std::shared_ptr<Subscriber> subscriber;
@@ -93,6 +93,7 @@ class RosTopicSubNode : public BT::ConditionNode
   }
 
   std::shared_ptr<rclcpp::Node> node_;
+  rclcpp::QoS qos_profile_;
   std::shared_ptr<SubscriberInstance> sub_instance_ = nullptr;
   std::shared_ptr<TopicT> last_msg_;
   std::string topic_name_;
@@ -115,7 +116,8 @@ class RosTopicSubNode : public BT::ConditionNode
    * */
   explicit RosTopicSubNode(const std::string & instance_name,
                            const BT::NodeConfig& conf,
-                           const RosNodeParams& params);
+                           const RosNodeParams& params,
+                           rclcpp::QoS qos_profile = rclcpp::QoS(1));
 
   virtual ~RosTopicSubNode() 
   {
@@ -185,9 +187,11 @@ private:
 template<class T> inline
   RosTopicSubNode<T>::RosTopicSubNode(const std::string & instance_name,
                                       const NodeConfig &conf,
-                                      const RosNodeParams& params)
+                                      const RosNodeParams& params,
+                                      rclcpp::QoS qos_profile)
     : BT::ConditionNode(instance_name, conf),
-      node_(params.nh)
+      node_(params.nh),
+      qos_profile_(qos_profile)
 { 
   // check port remapping
   auto portIt = config().input_ports.find("topic_name");
@@ -250,7 +254,7 @@ template<class T> inline
   {
     it = registry.insert( {subscriber_key_, std::make_shared<SubscriberInstance>() }).first;
     sub_instance_ = it->second;
-    sub_instance_->init(node_, topic_name);
+    sub_instance_->init(node_, topic_name, qos_profile_);
 
     RCLCPP_INFO(logger(), 
       "Node [%s] created Subscriber to topic [%s]",
